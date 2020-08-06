@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Windows.Forms;
 using Sanford.Multimedia.Midi;
 using System.Diagnostics;
 using System.IO;
 using System.Media;
+using Newtonsoft.Json;
 using ErrorEventArgs = Sanford.Multimedia.ErrorEventArgs;
 
 namespace MidiWatcher
@@ -19,6 +21,7 @@ namespace MidiWatcher
         private double _diffTimeStamp;
         private int _counter;
         private int _lastTimestamp;
+        private Dictionary<string, string> _sounds = new Dictionary<string, string>();
 
         public Form1()
         {
@@ -32,27 +35,29 @@ namespace MidiWatcher
                 MessageBox.Show(@"No MIDI input devices available.", @"Error!",
                     MessageBoxButtons.OK, MessageBoxIcon.Stop);
                 Close();
+
+                return;
             }
-            else
+
+            try
             {
-                try
-                {
-                    _context = SynchronizationContext.Current;
+                _context = SynchronizationContext.Current;
 
-                    _device = new InputDevice(0);
-                    _device.ChannelMessageReceived += HandleChannelMessageReceived;
-                    _device.SysCommonMessageReceived += HandleSysCommonMessageReceived;
-                    _device.SysExMessageReceived += HandleSysExMessageReceived;
-                    _device.SysRealtimeMessageReceived += HandleSysRealtimeMessageReceived;
-                    _device.Error += inDevice_Error;                    
+                _device = new InputDevice(0);
+                _device.ChannelMessageReceived += HandleChannelMessageReceived;
+                _device.SysCommonMessageReceived += HandleSysCommonMessageReceived;
+                _device.SysExMessageReceived += HandleSysExMessageReceived;
+                _device.SysRealtimeMessageReceived += HandleSysRealtimeMessageReceived;
+                _device.Error += inDevice_Error;
 
-                    _device.StartRecording();
-                }
-                catch(Exception ex)
-                {
-                    MessageBox.Show(ex.Message, @"Error!", MessageBoxButtons.OK, MessageBoxIcon.Stop);
-                    Close();
-                }
+                _sounds = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText("Sounds.json"));
+
+                _device.StartRecording();
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show(ex.Message, @"Error!", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                Close();
             }
 
             base.OnLoad(e);
@@ -108,12 +113,12 @@ namespace MidiWatcher
                     e.Message.Data1 + '\t' +
                     e.Message.Data2);
 
-                if (e.Message.Data1 == 12)
+                if (_sounds.TryGetValue(e.Message.Data1.ToString(), out var soundFile))
                 {
                     var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                     var effects = Path.Combine(docs, "SoundBoard");
-                    var sfx = Path.Combine(effects, "dixie-horn_daniel-simion.wav");
-                    System.Media.SoundPlayer player = new SoundPlayer(sfx);
+                    var sfx = Path.Combine(effects, soundFile);
+                    var player = new SoundPlayer(sfx);
                     player.Play();
 
                 }
