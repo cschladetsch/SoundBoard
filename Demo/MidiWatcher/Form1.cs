@@ -50,8 +50,7 @@ namespace MidiWatcher
                 _device.SysRealtimeMessageReceived += HandleSysRealtimeMessageReceived;
                 _device.Error += inDevice_Error;
 
-                _sounds = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText("Sounds.json"));
-
+                ReloadMapping();
                 _device.StartRecording();
             }
             catch(Exception ex)
@@ -113,6 +112,11 @@ namespace MidiWatcher
                     e.Message.Data1 + '\t' +
                     e.Message.Data2);
 
+                if (e.Message.Data1 == 72)
+                {
+                    ReloadMapping();
+                }
+
                 if (_sounds.TryGetValue(e.Message.Data1.ToString(), out var soundFile))
                 {
                     var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -125,6 +129,11 @@ namespace MidiWatcher
 
                 channelListBox.SelectedIndex = channelListBox.Items.Count - 1;
             }, null);
+        }
+
+        private void ReloadMapping()
+        {
+            _sounds = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText("Sounds.json"));
         }
 
         private void HandleSysRealtimeMessageReceived(object sender, SysRealtimeMessageEventArgs e)
