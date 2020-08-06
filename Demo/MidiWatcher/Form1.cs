@@ -45,8 +45,8 @@ namespace MidiWatcher
 
                 _device = new InputDevice(0);
                 _device.ChannelMessageReceived += HandleChannelMessageReceived;
-                _device.SysCommonMessageReceived += HandleSysCommonMessageReceived;
-                _device.SysExMessageReceived += HandleSysExMessageReceived;
+                //_device.SysCommonMessageReceived += HandleSysCommonMessageReceived;
+                //_device.SysExMessageReceived += HandleSysExMessageReceived;
                 _device.SysRealtimeMessageReceived += HandleSysRealtimeMessageReceived;
                 _device.Error += inDevice_Error;
 
@@ -127,34 +127,6 @@ namespace MidiWatcher
             }, null);
         }
 
-        private void HandleSysExMessageReceived(object sender, SysExMessageEventArgs e)
-        {
-            _context.Post(delegate
-            {
-                string result = "\n\n";
-
-                foreach(byte b in e.Message)
-                {
-                    result += $"{b:X2} ";
-                }
-
-                sysExRichTextBox.Text += result;
-            }, null);
-        }
-
-        private void HandleSysCommonMessageReceived(object sender, SysCommonMessageEventArgs e)
-        {
-            _context.Post(delegate
-            {
-                sysCommonListBox.Items.Add(
-                    e.Message.SysCommonType.ToString() + '\t' + '\t' +
-                    e.Message.Data1 + '\t' +
-                    e.Message.Data2);
-
-                sysCommonListBox.SelectedIndex = sysCommonListBox.Items.Count - 1;
-            }, null);
-        }
-
         private void HandleSysRealtimeMessageReceived(object sender, SysRealtimeMessageEventArgs e)
         {
             _counter++;
@@ -168,27 +140,6 @@ namespace MidiWatcher
                 _diffTimeStamp = 60000.0 / (timestamp - _lastTimestamp);
                 _lastTimestamp = timestamp;
             }
-           
-            _context.Post(delegate
-            {
-                sysRealtimeListBox.Items.Add(
-                    e.Message.SysRealtimeType.ToString());
-
-                sysRealtimeListBox.Items.Add("BPM from stopwatch: " + _diffMills.ToString("F4"));
-                sysRealtimeListBox.Items.Add("BPM from driver timestamp: " + _diffTimeStamp.ToString("F4"));
-
-                sysRealtimeListBox.SelectedIndex = sysRealtimeListBox.Items.Count - 1;
-            }, null);
-        }
-
-        private void checkBox1_CheckedChanged(object sender, EventArgs e)
-        {
-            _device.PostDriverCallbackToDelegateQueue = checkBox1.Checked;
-        }
-
-        private void checkBox2_CheckedChanged(object sender, EventArgs e)
-        {
-            _device.PostEventsOnCreationContext = checkBox2.Checked;
         }
     }
 }
