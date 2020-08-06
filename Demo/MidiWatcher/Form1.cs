@@ -1,9 +1,11 @@
 using System;
 using System.Threading;
 using System.Windows.Forms;
-using Sanford.Multimedia;
 using Sanford.Multimedia.Midi;
 using System.Diagnostics;
+using System.IO;
+using System.Media;
+using ErrorEventArgs = Sanford.Multimedia.ErrorEventArgs;
 
 namespace MidiWatcher
 {
@@ -90,7 +92,7 @@ namespace MidiWatcher
             }
         }
 
-        private void inDevice_Error(object sender, ErrorEventArgs e)
+        private static void inDevice_Error(object sender, ErrorEventArgs e)
         {
             MessageBox.Show(e.Error.Message, @"Error!",
                    MessageBoxButtons.OK, MessageBoxIcon.Stop);
@@ -105,6 +107,16 @@ namespace MidiWatcher
                     e.Message.MidiChannel + '\t' +
                     e.Message.Data1 + '\t' +
                     e.Message.Data2);
+
+                if (e.Message.Data1 == 12)
+                {
+                    var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                    var effects = Path.Combine(docs, "SoundBoard");
+                    var sfx = Path.Combine(effects, "dixie-horn_daniel-simion.wav");
+                    System.Media.SoundPlayer player = new SoundPlayer(sfx);
+                    player.Play();
+
+                }
 
                 channelListBox.SelectedIndex = channelListBox.Items.Count - 1;
             }, null);
