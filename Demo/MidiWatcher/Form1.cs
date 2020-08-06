@@ -1,9 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using Sanford.Multimedia;
@@ -14,11 +9,14 @@ namespace MidiWatcher
 {
     public partial class Form1 : Form
     {
-        private const int SysExBufferSize = 128;
-
-        private InputDevice inDevice = null;
-
-        private SynchronizationContext context;
+        private InputDevice _device;
+        private SynchronizationContext _context;
+        readonly Stopwatch _stopWatch = Stopwatch.StartNew();
+        private double _lastMillis;
+        private double _diffMills;
+        private double _diffTimeStamp;
+        private int _counter;
+        private int _lastTimestamp;
 
         public Form1()
         {
@@ -29,7 +27,7 @@ namespace MidiWatcher
         {
             if(InputDevice.DeviceCount == 0)
             {
-                MessageBox.Show("No MIDI input devices available.", "Error!",
+                MessageBox.Show(@"No MIDI input devices available.", @"Error!",
                     MessageBoxButtons.OK, MessageBoxIcon.Stop);
                 Close();
             }
@@ -37,19 +35,20 @@ namespace MidiWatcher
             {
                 try
                 {
-                    context = SynchronizationContext.Current;
+                    _context = SynchronizationContext.Current;
 
-                    inDevice = new InputDevice(0);
-                    inDevice.ChannelMessageReceived += HandleChannelMessageReceived;
-                    inDevice.SysCommonMessageReceived += HandleSysCommonMessageReceived;
-                    inDevice.SysExMessageReceived += HandleSysExMessageReceived;
-                    inDevice.SysRealtimeMessageReceived += HandleSysRealtimeMessageReceived;
-                    inDevice.Error += new EventHandler<ErrorEventArgs>(inDevice_Error);                    
+                    _device = new InputDevice(0);
+                    _device.ChannelMessageReceived += HandleChannelMessageReceived;
+                    _device.SysCommonMessageReceived += HandleSysCommonMessageReceived;
+                    _device.SysExMessageReceived += HandleSysExMessageReceived;
+                    _device.SysRealtimeMessageReceived += HandleSysRealtimeMessageReceived;
+                    _device.Error += inDevice_Error;                    
+
+                    _device.StartRecording();
                 }
                 catch(Exception ex)
                 {
-                    MessageBox.Show(ex.Message, "Error!",
-                        MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                    MessageBox.Show(ex.Message, @"Error!", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                     Close();
                 }
             }
@@ -59,10 +58,7 @@ namespace MidiWatcher
 
         protected override void OnClosed(EventArgs e)
         {
-            if(inDevice != null)
-            {
-                inDevice.Close();
-            }
+            _device?.Close();
 
             base.OnClosed(e);
         }
@@ -73,11 +69,11 @@ namespace MidiWatcher
 
             try
             {               
-                inDevice.StartRecording();
+                _device.StartRecording();
             }
             catch(Exception ex)
             {
-                MessageBox.Show(ex.Message, "Error!", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                MessageBox.Show(ex.Message, @"Error!", MessageBoxButtons.OK, MessageBoxIcon.Stop);
             }
         }
 
@@ -85,30 +81,30 @@ namespace MidiWatcher
         {
             try
             {
-                inDevice.StopRecording();
-                inDevice.Reset();
+                _device.StopRecording();
+                _device.Reset();
             }
             catch(Exception ex)
             {
-                MessageBox.Show(ex.Message, "Error!", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                MessageBox.Show(ex.Message, @"Error!", MessageBoxButtons.OK, MessageBoxIcon.Stop);
             }
         }
 
         private void inDevice_Error(object sender, ErrorEventArgs e)
         {
-            MessageBox.Show(e.Error.Message, "Error!",
+            MessageBox.Show(e.Error.Message, @"Error!",
                    MessageBoxButtons.OK, MessageBoxIcon.Stop);
         }
 
         private void HandleChannelMessageReceived(object sender, ChannelMessageEventArgs e)
         {
-            context.Post(delegate(object dummy)
+            _context.Post(delegate
             {
                 channelListBox.Items.Add(
                     e.Message.Command.ToString() + '\t' + '\t' +
-                    e.Message.MidiChannel.ToString() + '\t' +
-                    e.Message.Data1.ToString() + '\t' +
-                    e.Message.Data2.ToString());
+                    e.Message.MidiChannel + '\t' +
+                    e.Message.Data1 + '\t' +
+                    e.Message.Data2);
 
                 channelListBox.SelectedIndex = channelListBox.Items.Count - 1;
             }, null);
@@ -116,13 +112,13 @@ namespace MidiWatcher
 
         private void HandleSysExMessageReceived(object sender, SysExMessageEventArgs e)
         {
-            context.Post(delegate(object dummy)
+            _context.Post(delegate
             {
-                string result = "\n\n"; ;
+                string result = "\n\n";
 
                 foreach(byte b in e.Message)
                 {
-                    result += string.Format("{0:X2} ", b);
+                    result += $"{b:X2} ";
                 }
 
                 sysExRichTextBox.Text += result;
@@ -131,44 +127,38 @@ namespace MidiWatcher
 
         private void HandleSysCommonMessageReceived(object sender, SysCommonMessageEventArgs e)
         {
-            context.Post(delegate(object dummy)
+            _context.Post(delegate
             {
                 sysCommonListBox.Items.Add(
                     e.Message.SysCommonType.ToString() + '\t' + '\t' +
-                    e.Message.Data1.ToString() + '\t' +
-                    e.Message.Data2.ToString());
+                    e.Message.Data1 + '\t' +
+                    e.Message.Data2);
 
                 sysCommonListBox.SelectedIndex = sysCommonListBox.Items.Count - 1;
             }, null);
         }
 
-        Stopwatch FWatch = Stopwatch.StartNew();
-        double FLastMillis;
-        double FDiff;
-        double FDiffTimeStamp;
-        int counter;
-        int FLastTimestamp;
         private void HandleSysRealtimeMessageReceived(object sender, SysRealtimeMessageEventArgs e)
         {
-            counter++;
-            if (counter % 24 == 0)
+            _counter++;
+            if (_counter % 24 == 0)
             {
-                var millis = FWatch.Elapsed.TotalMilliseconds;
-                FDiff = 60000 / (millis - FLastMillis);
-                FLastMillis = millis;
+                var millis = _stopWatch.Elapsed.TotalMilliseconds;
+                _diffMills = 60000 / (millis - _lastMillis);
+                _lastMillis = millis;
 
                 var timestamp = e.Message.Timestamp;
-                FDiffTimeStamp = 60000.0 / (timestamp - FLastTimestamp);
-                FLastTimestamp = timestamp;
+                _diffTimeStamp = 60000.0 / (timestamp - _lastTimestamp);
+                _lastTimestamp = timestamp;
             }
            
-            context.Post(delegate(object dummy)
+            _context.Post(delegate
             {
                 sysRealtimeListBox.Items.Add(
                     e.Message.SysRealtimeType.ToString());
 
-                sysRealtimeListBox.Items.Add("BPM from stopwatch: " + FDiff.ToString("F4"));
-                sysRealtimeListBox.Items.Add("BPM from driver timestamp: " + FDiffTimeStamp.ToString("F4"));
+                sysRealtimeListBox.Items.Add("BPM from stopwatch: " + _diffMills.ToString("F4"));
+                sysRealtimeListBox.Items.Add("BPM from driver timestamp: " + _diffTimeStamp.ToString("F4"));
 
                 sysRealtimeListBox.SelectedIndex = sysRealtimeListBox.Items.Count - 1;
             }, null);
@@ -176,12 +166,12 @@ namespace MidiWatcher
 
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
-            inDevice.PostDriverCallbackToDelegateQueue = checkBox1.Checked;
+            _device.PostDriverCallbackToDelegateQueue = checkBox1.Checked;
         }
 
         private void checkBox2_CheckedChanged(object sender, EventArgs e)
         {
-            inDevice.PostEventsOnCreationContext = checkBox2.Checked;
+            _device.PostEventsOnCreationContext = checkBox2.Checked;
         }
     }
 }
