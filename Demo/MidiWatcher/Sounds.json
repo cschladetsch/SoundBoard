@@ -9,6 +9,10 @@
   "46": "light-applause.wav",
   "47": "haha-4.wav",
 
+  "36":  "nuke-detected.wav",
+  "37":  "base-is-under-attack.wav",
+  "38":  "forces-under-attack.wav",
+
   "60": "dixie-horn.wav",
   "62": "person_cheering.wav",
   "63": "sniper_shot.wav",
