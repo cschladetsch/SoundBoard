@@ -107,6 +107,7 @@ namespace MidiWatcher
 
         private void ListEffects()
         {
+            var n = 0;
             foreach (var sound in _sounds)
             {
                 var name = sound.Value.Replace('-', ' ').Replace('_', ' ').Replace(".wav", "");
@@ -128,6 +129,12 @@ namespace MidiWatcher
                 _soundList.Items.Add(
                     sound.Key + ": "  +
                     sb.ToString());
+
+                if (++n == 4)
+                {
+                    _soundList.Items.Add("--------------------");
+                    n = 0;
+                }
             }
         }
 
