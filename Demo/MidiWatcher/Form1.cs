@@ -6,6 +6,7 @@ using Sanford.Multimedia.Midi;
 using System.Diagnostics;
 using System.IO;
 using System.Media;
+using System.Text;
 using Newtonsoft.Json;
 using ErrorEventArgs = Sanford.Multimedia.ErrorEventArgs;
 
@@ -30,7 +31,7 @@ namespace MidiWatcher
 
         protected override void OnLoad(EventArgs e)
         {
-            if(InputDevice.DeviceCount == 0)
+            if (InputDevice.DeviceCount == 0)
             {
                 MessageBox.Show(@"No MIDI input devices available.", @"Error!",
                     MessageBoxButtons.OK, MessageBoxIcon.Stop);
@@ -51,6 +52,8 @@ namespace MidiWatcher
                 _device.Error += inDevice_Error;
 
                 ReloadMapping();
+                ListEffects();
+
                 _device.StartRecording();
             }
             catch(Exception ex)
@@ -102,6 +105,32 @@ namespace MidiWatcher
                    MessageBoxButtons.OK, MessageBoxIcon.Stop);
         }
 
+        private void ListEffects()
+        {
+            foreach (var sound in _sounds)
+            {
+                var name = sound.Value.Replace('-', ' ').Replace('_', ' ').Replace(".wav", "");
+                var upNext = true;
+                var sb = new StringBuilder();
+                foreach (var ch in name)
+                {
+                    var c = ch;
+                    if (c == ' ')
+                        upNext = true;
+                    else if (upNext)
+                    {
+                        c = char.ToUpper(c);
+                        upNext = false;
+                    }
+                    sb.Append(c);
+                }
+
+                _soundList.Items.Add(
+                    sound.Key + ": "  +
+                    sb.ToString());
+            }
+        }
+
         private void HandleChannelMessageReceived(object sender, ChannelMessageEventArgs e)
         {
             _context.Post(delegate
@@ -122,7 +151,7 @@ namespace MidiWatcher
                     var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                     var effects = Path.Combine(docs, "SoundBoard");
                     var sfx = Path.Combine(effects, soundFile);
-                    var player = new SoundPlayer(sfx);
+                    var player = new SoundPlayer(sfx );
                     player.Play();
 
                 }
