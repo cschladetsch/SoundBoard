@@ -1,27 +1,11 @@
-Test
-
-Sanford.Multimedia.Midi
+SoundBoard for Streaming
 =======================
 
-This is all source code of the C# MIDI toolkit from CodeProject by Leslie Sanford.
+Used to map keys from a MIDI keyboard to play sound files.
 
-Improvements:
-- 64-bit compatible
-- Windows 8 and 10 compatible
-- Mono framework compatible on Windows
-- Does not require additional assemblies
-- Faster midi file reading in Release build
+Sounds simple enough, and it is, but it's really just for streaming purposes.
 
-Also avaliable on Nuget.org
+See the code for details, I'm not going to bother documenting this app as it's entirely for my own use.
 
-    PM> Install-Package Sanford.Multimedia.Midi
+Forked from `Sanford.Multimedia.Midi` base code for MIDI interface.
 
-If you have any improvement or fix to this library, please don't hesitate to make a fork and open a pull request.
-
-MIT License
-
-Credits:
-
-http://www.codeproject.com/Articles/6228/C-MIDI-Toolkit
-
-https://code.google.com/p/vsticks/
