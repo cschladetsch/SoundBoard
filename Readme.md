@@ -11,3 +11,10 @@ The actual application is in [MidiWatcher](Demo/MidiWatcher). Everything is just
 
 Forked from `Sanford.Multimedia.Midi` base code for MIDI interface.
 
+## Special Keys
+* The first knob changes the volume. 
+* The second changes the playback speed. Note that this also stops the replay :cry:
+
+## TODO
+
+A better GUI.
