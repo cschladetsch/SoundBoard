@@ -40,7 +40,7 @@ namespace MidiWatcher
             this.channelListBox.FormattingEnabled = true;
             this.channelListBox.Location = new System.Drawing.Point(6, 19);
             this.channelListBox.Name = "channelListBox";
-            this.channelListBox.Size = new System.Drawing.Size(258, 95);
+            this.channelListBox.Size = new System.Drawing.Size(454, 95);
             this.channelListBox.TabIndex = 0;
             // 
             // channelMessageGroupBox
@@ -48,7 +48,7 @@ namespace MidiWatcher
             this.channelMessageGroupBox.Controls.Add(this.channelListBox);
             this.channelMessageGroupBox.Location = new System.Drawing.Point(12, 12);
             this.channelMessageGroupBox.Name = "channelMessageGroupBox";
-            this.channelMessageGroupBox.Size = new System.Drawing.Size(275, 130);
+            this.channelMessageGroupBox.Size = new System.Drawing.Size(466, 129);
             this.channelMessageGroupBox.TabIndex = 1;
             this.channelMessageGroupBox.TabStop = false;
             this.channelMessageGroupBox.Text = "Channel Messages";
@@ -60,14 +60,14 @@ namespace MidiWatcher
             this._soundList.ItemHeight = 24;
             this._soundList.Location = new System.Drawing.Point(18, 158);
             this._soundList.Name = "_soundList";
-            this._soundList.Size = new System.Drawing.Size(459, 340);
+            this._soundList.Size = new System.Drawing.Size(459, 604);
             this._soundList.TabIndex = 2;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(508, 509);
+            this.ClientSize = new System.Drawing.Size(490, 785);
             this.Controls.Add(this._soundList);
             this.Controls.Add(this.channelMessageGroupBox);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));

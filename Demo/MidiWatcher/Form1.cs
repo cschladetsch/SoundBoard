@@ -1,13 +1,14 @@
+using Newtonsoft.Json;
+using Sanford.Multimedia.Midi;
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using System.Windows.Forms;
-using Sanford.Multimedia.Midi;
 using System.Diagnostics;
 using System.IO;
 using System.Media;
 using System.Text;
-using Newtonsoft.Json;
+using System.Threading;
+using System.Windows.Forms;
+using System.Windows.Media;
 using ErrorEventArgs = Sanford.Multimedia.ErrorEventArgs;
 
 namespace MidiWatcher
@@ -18,15 +19,16 @@ namespace MidiWatcher
         private SynchronizationContext _context;
         readonly Stopwatch _stopWatch = Stopwatch.StartNew();
         private double _lastMillis;
-        private double _diffMills;
-        private double _diffTimeStamp;
         private int _counter;
         private int _lastTimestamp;
         private Dictionary<string, string> _sounds = new Dictionary<string, string>();
+        private readonly MediaPlayer _mediaPlayer;
+        private float _volume = 15.0f / 127.0f;
 
         public Form1()
         {
             InitializeComponent();
+            _mediaPlayer = new MediaPlayer();
         }
 
         protected override void OnLoad(EventArgs e)
@@ -46,8 +48,6 @@ namespace MidiWatcher
 
                 _device = new InputDevice(0);
                 _device.ChannelMessageReceived += HandleChannelMessageReceived;
-                //_device.SysCommonMessageReceived += HandleSysCommonMessageReceived;
-                //_device.SysExMessageReceived += HandleSysExMessageReceived;
                 _device.SysRealtimeMessageReceived += HandleSysRealtimeMessageReceived;
                 _device.Error += inDevice_Error;
 
@@ -138,6 +138,13 @@ namespace MidiWatcher
             }
         }
 
+        public void Play(string filename)
+        {
+            _mediaPlayer.Open(new Uri(filename));
+            _mediaPlayer.Volume = _volume;
+            _mediaPlayer.Play();
+        }
+
         private void HandleChannelMessageReceived(object sender, ChannelMessageEventArgs e)
         {
             _context.Post(delegate
@@ -147,10 +154,38 @@ namespace MidiWatcher
                     e.Message.MidiChannel + '\t' +
                     e.Message.Data1 + '\t' +
                     e.Message.Data2);
+                channelListBox.TopIndex = channelListBox.Items.Count - 1;
 
-                if (e.Message.Data1 == 72)
+                // first keyboard key (lower C)
+                if (e.Message.Data1 == 48 && e.Message.Command == ChannelCommand.NoteOn)
                 {
                     ReloadMapping();
+                    return;
+                }
+
+                // just testing
+                if (e.Message.Command == ChannelCommand.PitchWheel)
+                {
+                    Console.WriteLine($"SpeedRatio: {e.Message.Data2} {e.Message.Data1}");
+                    return;
+                }
+
+                // first dial on set of 8 dials on top right of AKAI MPL mini
+                if (e.Message.Data1 == 1)
+                {
+                    _volume = e.Message.Data2 / 127.0f;
+                    _mediaPlayer.Volume = _volume;
+                    return;
+                }
+
+                if (e.Message.Data1 == 2)
+                {
+                    _volume = e.Message.Data2 / 127.0f;
+                    _mediaPlayer.Pause();
+                    _mediaPlayer.SpeedRatio = e.Message.Data2 / 127.0f;
+                    _mediaPlayer.Play();
+
+                    return;
                 }
 
                 if (_sounds.TryGetValue(e.Message.Data1.ToString(), out var soundFile))
@@ -158,9 +193,7 @@ namespace MidiWatcher
                     var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                     var effects = Path.Combine(docs, "SoundBoard");
                     var sfx = Path.Combine(effects, soundFile);
-                    var player = new SoundPlayer(sfx );
-                    player.Play();
-
+                    Play(sfx);
                 }
 
                 channelListBox.SelectedIndex = channelListBox.Items.Count - 1;
@@ -178,11 +211,9 @@ namespace MidiWatcher
             if (_counter % 24 == 0)
             {
                 var millis = _stopWatch.Elapsed.TotalMilliseconds;
-                _diffMills = 60000 / (millis - _lastMillis);
                 _lastMillis = millis;
 
                 var timestamp = e.Message.Timestamp;
-                _diffTimeStamp = 60000.0 / (timestamp - _lastTimestamp);
                 _lastTimestamp = timestamp;
             }
         }
