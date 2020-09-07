@@ -188,6 +188,9 @@ namespace MidiWatcher
                     return;
                 }
 
+                if (e.Message.Command != ChannelCommand.NoteOff)
+                    return;
+
                 if (_sounds.TryGetValue(e.Message.Data1.ToString(), out var soundFile))
                 {
                     var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
